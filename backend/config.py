@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     api_version: str = "1.0.0"
     
     # OpenAI / LLM Configuration
-    openai_api_key: str
+    openai_api_key: str = "sk-test-default"  # Default value
     model_name: str = "gpt-4"
     temperature: float = 0.7
     max_tokens: int = 2000
@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        protected_namespaces = ('settings_',)
     
     @property
     def allowed_origins_list(self) -> list:

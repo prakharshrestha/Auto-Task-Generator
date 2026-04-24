@@ -5,11 +5,11 @@ import logging
 from fastapi import APIRouter, HTTPException, Body
 from typing import List, Optional
 
-from backend.app.models.task import (
+from app.models.task import (
     Task, TaskCreate, TaskUpdate, TaskListResponse,
     TaskExtractionRequest, ExtractedTasks
 )
-from backend.app.agents.task_agent import TaskAgent
+from app.agents.task_agent import TaskAgent
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,8 @@ async def update_task(task_id: str, update_data: TaskUpdate):
             if value is not None:
                 setattr(task, field, value)
         
-        task.updated_at = __import__('datetime').datetime.utcnow()
+        from datetime import datetime
+        task.updated_at = datetime.utcnow()
         
         return task.dict()
         

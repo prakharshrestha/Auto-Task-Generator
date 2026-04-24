@@ -15,6 +15,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import settings
 from app.routes import health, tasks
 
+# Create logs directory if it doesn't exist
+import os
+os.makedirs(os.path.dirname(settings.log_file), exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=settings.log_level,
