@@ -1,0 +1,62 @@
+"""
+Configuration management for the AI Agent application.
+"""
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+    
+    # FastAPI Configuration
+    environment: str = "development"
+    api_port: int = 8000
+    api_host: str = "0.0.0.0"
+    api_title: str = "Autonomous AI Agent API"
+    api_version: str = "1.0.0"
+    
+    # OpenAI / LLM Configuration
+    openai_api_key: str
+    model_name: str = "gpt-4"
+    temperature: float = 0.7
+    max_tokens: int = 2000
+    
+    # Gmail Configuration
+    gmail_client_id: Optional[str] = None
+    gmail_client_secret: Optional[str] = None
+    gmail_refresh_token: Optional[str] = None
+    
+    # Slack Configuration
+    slack_bot_token: Optional[str] = None
+    slack_channel_id: Optional[str] = None
+    
+    # Notion Configuration
+    notion_api_key: Optional[str] = None
+    notion_database_id: Optional[str] = None
+    
+    # Database Configuration
+    database_url: str = "sqlite:///./app.db"
+    
+    # FAISS Vector DB Configuration
+    faiss_index_path: str = "./data/faiss_index"
+    embedding_model: str = "text-embedding-ada-002"
+    
+    # Logging Configuration
+    log_level: str = "INFO"
+    log_file: str = "./logs/app.log"
+    
+    # CORS Configuration
+    allowed_origins: str = "http://localhost:3000,http://localhost:8000"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+    
+    @property
+    def allowed_origins_list(self) -> list:
+        """Convert comma-separated origins to list."""
+        return [origin.strip() for origin in self.allowed_origins.split(",")]
+
+
+# Create global settings instance
+settings = Settings()

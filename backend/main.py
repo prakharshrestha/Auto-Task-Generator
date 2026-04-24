@@ -1,0 +1,96 @@
+"""
+Main entry point for the FastAPI application.
+"""
+import logging
+import sys
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from config import settings
+from app.routes import health, tasks
+
+# Configure logging
+logging.basicConfig(
+    level=settings.log_level,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(settings.log_file),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
+app = FastAPI(
+    title=settings.api_title,
+    version=settings.api_version,
+    description="An autonomous AI agent for task extraction and workflow execution",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add trusted host middleware
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0"]
+)
+
+# Include routers
+app.include_router(health.router)
+app.include_router(tasks.router)
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Run on application startup."""
+    logger.info("=" * 50)
+    logger.info(f"Starting {settings.api_title} v{settings.api_version}")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"API running on {settings.api_host}:{settings.api_port}")
+    logger.info(f"LLM Model: {settings.model_name}")
+    logger.info("=" * 50)
+
+# Shutdown event
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Run on application shutdown."""
+    logger.info("=" * 50)
+    logger.info("Shutting down API")
+    logger.info("=" * 50)
+
+# Exception handlers
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Handle uncaught exceptions."""
+    logger.error(f"Unhandled exception: {exc}")
+    return {
+        "error": "Internal server error",
+        "detail": str(exc) if settings.environment == "development" else "An error occurred"
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    logger.info(f"Starting Uvicorn server...")
+    uvicorn.run(
+        app,
+        host=settings.api_host,
+        port=settings.api_port,
+        log_level=settings.log_level.lower()
+    )
