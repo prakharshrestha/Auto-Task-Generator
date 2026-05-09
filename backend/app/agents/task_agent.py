@@ -114,11 +114,12 @@ class TaskAgent:
                 task_id = f"task_{uuid.uuid4().hex[:8]}"
                 task = TaskCreate(**task_data)
                 
-                # Store task
+                task_dict = task.dict()
+                task_dict["source_email"] = email_subject  # always override safely
+
                 full_task = Task(
-                    id=task_id,
-                    **task.dict(),
-                    source_email=email_subject
+                       id=task_id,
+                       **task_dict
                 )
                 self.tasks_store[task_id] = full_task
                 created_tasks.append(full_task.dict())

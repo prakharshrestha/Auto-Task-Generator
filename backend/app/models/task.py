@@ -1,10 +1,11 @@
 """
 Data models for Task management.
 """
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, time
 from enum import Enum
+from typing import Optional, List
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class TaskStatus(str, Enum):
@@ -31,6 +32,18 @@ class TaskBase(BaseModel):
     due_date: Optional[datetime] = Field(None, description="Task due date")
     assigned_to: Optional[str] = Field(None, description="Person assigned to task")
     tags: List[str] = Field(default_factory=list, description="Task tags")
+
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def normalize_due_date(cls, value):
+        if value in (None, "", "not_specified", "not specified", "N/A"):
+            return None
+        if isinstance(value, str) and len(value) == 10:
+            try:
+                return datetime.combine(datetime.strptime(value, "%Y-%m-%d").date(), time.min)
+            except Exception:
+                return None
+        return value
 
 
 class TaskCreate(TaskBase):
@@ -59,7 +72,7 @@ class Task(TaskBase):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
     completed_at: Optional[datetime] = Field(None, description="Completion timestamp")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
