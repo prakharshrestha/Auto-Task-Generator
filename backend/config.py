@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     gmail_client_secret: Optional[str] = None
     gmail_refresh_token: Optional[str] = None
 
+    # Google OAuth (Gmail)
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
+    google_redirect_uri: Optional[str] = None
+
     # Slack Configuration
     slack_bot_token: Optional[str] = None
     slack_channel_id: Optional[str] = None
@@ -58,7 +63,7 @@ class Settings(BaseSettings):
         return self.ollama_model
 
     class Config:
-        env_file = ".env"
+        env_file = "backend/.env"
         case_sensitive = False
         protected_namespaces = ('settings_',)
 

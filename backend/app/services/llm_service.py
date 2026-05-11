@@ -31,11 +31,12 @@ class LLMService:
             ],
             "stream": False,
             "options": {
-                "temperature": self.temperature
+                "temperature": self.temperature,
+                "num_predict": 200
             }
         }
 
-        response = requests.post(f"{self.base_url}/api/chat", json=payload, timeout=300)
+        response = requests.post(f"{self.base_url}/api/chat", json=payload, timeout=30)
         response.raise_for_status()
         data = response.json()
         return data["message"]["content"]

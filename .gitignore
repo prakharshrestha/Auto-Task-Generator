@@ -55,3 +55,8 @@ out/
 # OS
 Thumbs.db
 .DS_Store
+
+.env
+backend/.env
+
+app.db

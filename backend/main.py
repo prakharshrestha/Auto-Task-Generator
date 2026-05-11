@@ -4,6 +4,7 @@ Main entry point for the FastAPI application.
 import logging
 import sys
 from pathlib import Path
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,10 +14,10 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 sys.path.insert(0, str(Path(__file__).parent))
 
 from config import settings
-from app.routes import health, tasks
+from app.routes import health, tasks, auth
+import app.routes.gmail as gmail
 
 # Create logs directory if it doesn't exist
-import os
 os.makedirs(os.path.dirname(settings.log_file), exist_ok=True)
 
 # Configure logging
@@ -58,6 +59,8 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 app.include_router(tasks.router)
+app.include_router(auth.router)
+app.include_router(gmail.router)
 
 # Startup event
 @app.on_event("startup")
@@ -90,8 +93,8 @@ async def global_exception_handler(request, exc):
 
 if __name__ == "__main__":
     import uvicorn
-    
-    logger.info(f"Starting Uvicorn server...")
+
+    logger.info("Starting Uvicorn server...")
     uvicorn.run(
         app,
         host=settings.api_host,
