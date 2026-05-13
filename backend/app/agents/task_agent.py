@@ -11,6 +11,9 @@ from app.services.email_service import EmailService
 from app.services.workflow_service import WorkflowService, WorkflowState
 from app.models.task import Task, TaskStatus, TaskCreate
 
+from app.database import SessionLocal
+from app.models.db_models import DBTask
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,24 +43,9 @@ class TaskAgent:
             logger.error(f"Failed to initialize WorkflowService: {e}")
             self.workflow_service = None
         
-        self.tasks_store: Dict[str, Task] = {}
         logger.info("TaskAgent initialized")
     
-    # ========================
-    # THOUGHT PROCESS (Reasoning)
-    # ========================
-    
     def _think_about_email(self, email_subject: str, email_body: str) -> str:
-        """
-        Think about an email - reasoning step.
-        
-        Args:
-            email_subject: Email subject
-            email_body: Email body
-            
-        Returns:
-            Thought/reasoning string
-        """
         thought = f"""
         REASONING STEP:
         - Email Subject: {email_subject}
@@ -67,40 +55,18 @@ class TaskAgent:
         logger.info(f"Agent thinking: {thought}")
         return thought
     
-    # ========================
-    # ACT (Execution)
-    # ========================
-    
     def process_email(
         self,
         email_subject: str,
         email_body: str,
         sender: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Process an email and extract tasks (ReAct: THOUGHT + ACT).
-        
-        Args:
-            email_subject: Email subject
-            email_body: Email body
-            sender: Email sender
-            
-        Returns:
-            Dictionary with extracted tasks and workflow info
-        """
         try:
             logger.info(f"Agent processing email: {email_subject}")
-            
-            # THOUGHT: Analyze the email
             thought = self._think_about_email(email_subject, email_body)
             
-            # ACT: Extract tasks using LLM
             if not self.llm_service:
-                return {
-                    "success": False,
-                    "error": "LLM service not initialized",
-                    "tasks": []
-                }
+                return {"success": False, "error": "LLM service not initialized", "tasks": []}
             
             extraction_result = self.llm_service.extract_tasks(
                 email_subject=email_subject,
@@ -108,23 +74,51 @@ class TaskAgent:
                 sender=sender
             )
             
-            # Store extracted tasks
             created_tasks = []
-            for task_data in extraction_result.get("tasks", []):
-                task_id = f"task_{uuid.uuid4().hex[:8]}"
-                task = TaskCreate(**task_data)
-                
-                task_dict = task.dict()
-                task_dict["source_email"] = email_subject  # always override safely
-
-                full_task = Task(
-                       id=task_id,
-                       **task_dict
-                )
-                self.tasks_store[task_id] = full_task
-                created_tasks.append(full_task.dict())
-                
-                logger.info(f"Created task: {task_id} - {task_data.get('title')}")
+            db = SessionLocal()
+            try:
+                for task_data in extraction_result.get("tasks", []):
+                    task_id = f"task_{uuid.uuid4().hex[:8]}"
+                    
+                    # Use Pydantic to validate and normalize (e.g. due_date)
+                    try:
+                        validated_task = TaskCreate(**task_data)
+                    except Exception as e:
+                        logger.error(f"Validation error for task {task_data}: {e}")
+                        continue
+                        
+                    db_task = DBTask(
+                        id=task_id,
+                        title=validated_task.title,
+                        description=validated_task.description,
+                        priority=validated_task.priority.value,
+                        due_date=validated_task.due_date,
+                        assigned_to=validated_task.assigned_to,
+                        tags=validated_task.tags,
+                        source_email=email_subject,
+                        extracted_from=email_body[:500] if email_body else None
+                    )
+                    db.add(db_task)
+                    
+                    # Return dict format expected by the router
+                    task_dict = {
+                        "id": task_id,
+                        "title": db_task.title,
+                        "description": db_task.description,
+                        "priority": db_task.priority,
+                        "status": db_task.status,
+                        "tags": db_task.tags,
+                        "source_email": db_task.source_email,
+                        "created_at": datetime.utcnow()
+                    }
+                    created_tasks.append(task_dict)
+                    logger.info(f"Created task: {task_id} - {db_task.title}")
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                logger.error(f"Database error during extraction: {e}")
+            finally:
+                db.close()
             
             return {
                 "success": True,
@@ -137,60 +131,46 @@ class TaskAgent:
             
         except Exception as e:
             logger.error(f"Error processing email: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "tasks": []
-            }
+            return {"success": False, "error": str(e), "tasks": []}
     
     def reason_and_plan_task(self, task_id: str) -> Dict[str, Any]:
-        """
-        Use ReAct to reason about and plan task execution.
-        
-        Args:
-            task_id: ID of the task to plan
-            
-        Returns:
-            Dictionary with reasoning and workflow plan
-        """
         try:
-            task = self.tasks_store.get(task_id)
-            if not task:
-                return {"success": False, "error": "Task not found"}
+            db = SessionLocal()
+            try:
+                db_task = db.query(DBTask).filter(DBTask.id == task_id).first()
+                if not db_task:
+                    return {"success": False, "error": "Task not found"}
+                
+                title = db_task.title
+                description = db_task.description
+                priority = db_task.priority
+                tags = db_task.tags
+            finally:
+                db.close()
             
             logger.info(f"Agent reasoning about task: {task_id}")
             
-            # THOUGHT: Consider task requirements
             thought = f"""
-            REASONING FOR TASK: {task.title}
-            - Description: {task.description}
-            - Priority: {task.priority}
+            REASONING FOR TASK: {title}
+            - Description: {description}
+            - Priority: {priority}
             - Analysis: Determining execution workflow
             """
             
-            # ACT: Generate reasoning and workflow
             if not self.llm_service:
-                return {
-                    "success": False,
-                    "error": "LLM service not initialized"
-                }
+                return {"success": False, "error": "LLM service not initialized"}
             
             reasoning_result = self.llm_service.reason_about_task(
-                task_title=task.title,
-                task_description=task.description,
-                context=f"Priority: {task.priority}, Tags: {', '.join(task.tags)}"
+                task_title=title,
+                task_description=description,
+                context=f"Priority: {priority}, Tags: {', '.join(tags)}"
             )
             
-            # Create workflow from reasoning
             if not self.workflow_service:
-                return {
-                    "success": False,
-                    "error": "Workflow service not initialized"
-                }
+                return {"success": False, "error": "Workflow service not initialized"}
             
-            workflow = self.workflow_service.create_workflow(task_id, task.title)
+            workflow = self.workflow_service.create_workflow(task_id, title)
             
-            # Add steps from reasoning
             for idx, step_data in enumerate(reasoning_result.get("workflow_steps", []), 1):
                 step_id = f"step_{idx}"
                 self.workflow_service.add_workflow_step(
@@ -216,67 +196,58 @@ class TaskAgent:
             
         except Exception as e:
             logger.error(f"Error reasoning about task: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
     
     def execute_task(self, task_id: str) -> Dict[str, Any]:
-        """
-        Execute a task by running its workflow.
-        
-        Args:
-            task_id: ID of the task to execute
-            
-        Returns:
-            Execution result
-        """
         try:
-            task = self.tasks_store.get(task_id)
-            if not task:
-                return {"success": False, "error": "Task not found"}
-            
-            logger.info(f"Agent executing task: {task_id}")
-            
-            if not self.workflow_service:
-                return {
-                    "success": False,
-                    "error": "Workflow service not initialized"
-                }
-            
-            # Find workflow for this task
-            workflow = None
-            for wf in self.workflow_service.workflows.values():
-                if wf.task_id == task_id:
-                    workflow = wf
-                    break
-            
-            if not workflow:
-                return {"success": False, "error": "No workflow found for task"}
-            
-            # ACT: Execute workflow
-            execution_result = self.workflow_service.execute_workflow(workflow.workflow_id)
-            
-            # Update task status
-            if execution_result.get("success"):
-                task.status = TaskStatus.COMPLETED
-                task.completed_at = datetime.utcnow()
-            else:
-                task.status = TaskStatus.FAILED
+            db = SessionLocal()
+            try:
+                db_task = db.query(DBTask).filter(DBTask.id == task_id).first()
+                if not db_task:
+                    return {"success": False, "error": "Task not found"}
+                
+                title = db_task.title
+                description = db_task.description
+                
+                logger.info(f"Agent executing task: {task_id}")
+                
+                if not self.workflow_service:
+                    return {"success": False, "error": "Workflow service not initialized"}
+                
+                workflow = None
+                for wf in self.workflow_service.workflows.values():
+                    if wf.task_id == task_id:
+                        workflow = wf
+                        break
+                
+                if not workflow:
+                    return {"success": False, "error": "No workflow found for task"}
+                
+                execution_result = self.workflow_service.execute_workflow(workflow.workflow_id)
+                
+                if execution_result.get("success"):
+                    db_task.status = TaskStatus.COMPLETED.value
+                    db_task.completed_at = datetime.utcnow()
+                else:
+                    db_task.status = TaskStatus.FAILED.value
+                db.commit()
+                
+                status_value = db_task.status
+            finally:
+                db.close()
             
             if not self.llm_service:
                 return {
                     "success": execution_result.get("success"),
                     "task_id": task_id,
                     "workflow_id": workflow.workflow_id,
-                    "task_status": task.status.value,
+                    "task_status": status_value,
                     "execution_result": execution_result
                 }
             
-            # Generate summary
             summary_result = self.llm_service.generate_summary(
-                task_title=task.title,
-                task_description=task.description,
+                task_title=title,
+                task_description=description,
                 execution_results=execution_result
             )
             
@@ -284,7 +255,7 @@ class TaskAgent:
                 "success": execution_result.get("success"),
                 "task_id": task_id,
                 "workflow_id": workflow.workflow_id,
-                "task_status": task.status.value,
+                "task_status": status_value,
                 "execution_result": execution_result,
                 "summary": summary_result.get("summary"),
                 "key_points": summary_result.get("key_points", []),
@@ -293,74 +264,149 @@ class TaskAgent:
             
         except Exception as e:
             logger.error(f"Error executing task: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
     
-    # ========================
-    # MEMORY & CONTEXT
-    # ========================
-    
-    def retrieve_similar_tasks(self, query: str, limit: int = 5) -> List[Task]:
-        """
-        Retrieve similar past tasks for context.
-        
-        Args:
-            query: Search query
-            limit: Maximum number of tasks to return
-            
-        Returns:
-            List of similar tasks
-        """
+    def retrieve_similar_tasks(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        db = SessionLocal()
         try:
-            logger.info(f"Retrieving similar tasks for query: {query}")
+            # Simple keyword matching in DB for MVP
+            query_terms = query.lower().split()
+            all_tasks = db.query(DBTask).all()
             
-            # Simple keyword matching (in production, use semantic search with FAISS)
             similar_tasks = []
-            for task in self.tasks_store.values():
-                if any(keyword.lower() in task.title.lower() or 
-                       keyword.lower() in task.description.lower()
-                       for keyword in query.split()):
-                    similar_tasks.append(task)
+            for task in all_tasks:
+                if any(keyword in task.title.lower() or 
+                       keyword in task.description.lower() 
+                       for keyword in query_terms):
+                    similar_tasks.append(self._db_task_to_dict(task))
             
             return similar_tasks[:limit]
-            
         except Exception as e:
             logger.error(f"Error retrieving similar tasks: {e}")
             return []
+        finally:
+            db.close()
     
     def get_agent_state(self) -> Dict[str, Any]:
-        """
-        Get current state of the agent.
-        
-        Returns:
-            Dictionary with agent state info
-        """
         active_workflows = 0
+        total_workflows = 0
         if self.workflow_service:
             active_workflows = len([w for w in self.workflow_service.workflows.values() 
                                    if w.state == WorkflowState.RUNNING])
-        
-        total_workflows = 0
-        if self.workflow_service:
             total_workflows = len(self.workflow_service.workflows)
         
+        db = SessionLocal()
+        try:
+            tasks_total = db.query(DBTask).count()
+            tasks_completed = db.query(DBTask).filter(DBTask.status == TaskStatus.COMPLETED.value).count()
+            tasks_pending = db.query(DBTask).filter(DBTask.status == TaskStatus.PENDING.value).count()
+        except Exception as e:
+            logger.error(f"Error getting agent state from DB: {e}")
+            tasks_total = tasks_completed = tasks_pending = 0
+        finally:
+            db.close()
+            
         return {
-            "tasks_total": len(self.tasks_store),
-            "tasks_completed": len([t for t in self.tasks_store.values() 
-                                   if t.status == TaskStatus.COMPLETED]),
-            "tasks_pending": len([t for t in self.tasks_store.values() 
-                                 if t.status == TaskStatus.PENDING]),
+            "tasks_total": tasks_total,
+            "tasks_completed": tasks_completed,
+            "tasks_pending": tasks_pending,
             "workflows_active": active_workflows,
             "total_workflows": total_workflows
         }
     
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
-        """Get a specific task."""
-        task = self.tasks_store.get(task_id)
-        return task.dict() if task else None
+        db = SessionLocal()
+        try:
+            task = db.query(DBTask).filter(DBTask.id == task_id).first()
+            return self._db_task_to_dict(task) if task else None
+        finally:
+            db.close()
     
     def get_all_tasks(self) -> List[Dict[str, Any]]:
-        """Get all tasks."""
-        return [task.dict() for task in self.tasks_store.values()]
+        db = SessionLocal()
+        try:
+            tasks = db.query(DBTask).order_by(DBTask.created_at.desc()).all()
+            return [self._db_task_to_dict(task) for task in tasks]
+        finally:
+            db.close()
+
+    def create_task(self, task_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        db = SessionLocal()
+        try:
+            task_id = f"task_{uuid.uuid4().hex[:8]}"
+            db_task = DBTask(
+                id=task_id,
+                title=task_data.get("title", "Untitled"),
+                description=task_data.get("description", ""),
+                priority=task_data.get("priority", "medium"),
+                due_date=task_data.get("due_date"),
+                assigned_to=task_data.get("assigned_to"),
+                tags=task_data.get("tags", []),
+                source_email=task_data.get("source_email", "manual"),
+                status=task_data.get("status", "pending")
+            )
+            db.add(db_task)
+            db.commit()
+            db.refresh(db_task)
+            return self._db_task_to_dict(db_task)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating manual task: {e}")
+            raise
+        finally:
+            db.close()
+
+    def update_task(self, task_id: str, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        db = SessionLocal()
+        try:
+            task = db.query(DBTask).filter(DBTask.id == task_id).first()
+            if not task:
+                return None
+            
+            for key, value in update_data.items():
+                if hasattr(task, key):
+                    setattr(task, key, value)
+            
+            db.commit()
+            db.refresh(task)
+            return self._db_task_to_dict(task)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error updating task: {e}")
+            raise
+        finally:
+            db.close()
+
+    def delete_task(self, task_id: str) -> bool:
+        db = SessionLocal()
+        try:
+            task = db.query(DBTask).filter(DBTask.id == task_id).first()
+            if not task:
+                return False
+            db.delete(task)
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error deleting task: {e}")
+            return False
+        finally:
+            db.close()
+
+    def _db_task_to_dict(self, db_task: DBTask) -> Dict[str, Any]:
+        """Convert a DBTask to a dictionary matching the Task Pydantic model."""
+        return {
+            "id": db_task.id,
+            "title": db_task.title,
+            "description": db_task.description,
+            "priority": db_task.priority,
+            "status": db_task.status,
+            "due_date": db_task.due_date,
+            "assigned_to": db_task.assigned_to,
+            "tags": db_task.tags,
+            "source_email": db_task.source_email,
+            "extracted_from": db_task.extracted_from,
+            "created_at": db_task.created_at,
+            "updated_at": db_task.updated_at,
+            "completed_at": db_task.completed_at
+        }

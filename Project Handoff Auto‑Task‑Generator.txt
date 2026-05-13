@@ -1,0 +1,200 @@
+Project Handoff: Auto‑Task‑Generator
+✅ What’s already done
+Gmail integration
+
+OAuth flow implemented
+Endpoints added for reading emails and extracting tasks
+LLM integration (Ollama)
+
+Local LLM via Ollama
+LLM limits added (num_predict=200) to avoid huge responses
+Endpoints support 3 modes:
+mode=raw → no LLM
+mode=extract → tasks only
+mode=plan → tasks + workflow plan
+Endpoints
+
+/api/gmail/recent
+/api/gmail/recent-plans?limit=1&mode=raw
+/api/gmail/recent-plans?limit=1&mode=extract
+/api/gmail/recent-plans?limit=1&mode=plan
+Git pushed to main:
+
+commit a110bd7
+✅ What is NOT pushed (ignored files)
+Your machine has files ignored by .gitignore. She must create them locally:
+
+File	Why	How to create
+.env / backend/.env	secrets	copy from .env.example and fill values
+app.db	local DB	auto‑created when app runs
+venv/	local Python env	create locally
+node_modules/	frontend deps	created when frontend is added
+✅ Required software to install
+Python 3.11/3.12
+Git
+Ollama (for local LLM)
+Install: https://ollama.com/download
+Required model: mistral OR llama2
+bash
+ollama pull mistral
+# or
+ollama pull llama2
+✅ Ports & services
+Service	Port
+FastAPI backend	8000
+Ollama server	11434
+Make sure both are running.
+
+✅ Setup steps (on her laptop)
+bat
+git clone https://github.com/prakharshrestha/Auto-Task-Generator.git
+cd Auto-Task-Generator
+python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
+Create environment file
+bat
+copy .env.example .env
+Then paste the OAuth values you shared.
+
+Start Ollama
+bat
+ollama serve
+Run backend
+bat
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+Test endpoints
+Code
+http://localhost:8000/api/gmail/recent-plans?limit=1&mode=raw
+http://localhost:8000/api/gmail/recent-plans?limit=1&mode=extract
+http://localhost:8000/api/gmail/recent-plans?limit=1&mode=plan
+✅ Google OAuth note
+If your OAuth app is in Testing mode, add her email as a Test User in Google Cloud → OAuth Consent Screen.
+
+✅ What’s left to complete
+Skip newsletters/promotions
+
+Filter Gmail categories or sender patterns before extraction.
+Store extracted tasks in a task list
+
+Save tasks to database (SQLite/Postgres)
+Create endpoints like:
+GET /tasks
+POST /tasks
+Frontend UI
+
+Show emails → extracted tasks → plans
+Simple dashboard
+
+
+
+
+
+
+
+Deep Repo Overview (Code Structure + Flow)
+✅ Project Structure (important folders)
+Code
+Auto-Task-Generator/
+├─ backend/
+│  ├─ app/
+│  │  ├─ agents/
+│  │  │  └─ task_agent.py         # core agent logic (extract + plan)
+│  │  ├─ routes/
+│  │  │  ├─ auth.py               # OAuth endpoints
+│  │  │  └─ gmail.py              # Gmail endpoints (recent emails, plans)
+│  │  ├─ services/
+│  │  │  ├─ llm_service.py        # Ollama chat wrapper
+│  │  │  ├─ gmail_service.py      # Gmail fetch + parsing
+│  │  │  └─ gmail_oauth_service.py# OAuth flow helper
+│  │  └─ models/                  # (if added later for DB models)
+│  ├─ config.py                   # settings/env values
+│  ├─ main.py                     # FastAPI app startup
+├─ .env.example                   # template for secrets
+├─ requirements.txt               # Python dependencies
+└─ app.db                         # local sqlite (ignored)
+✅ Key Code Files (what they do)
+backend/main.py
+FastAPI startup entry.
+Loads settings, sets logging, includes routers.
+backend/config.py
+Environment variable loader.
+All secrets pulled from .env.
+If you add new configs, add them here.
+backend/app/routes/auth.py
+OAuth login and callback endpoints.
+Handles token storage.
+backend/app/routes/gmail.py
+Main API endpoints for Gmail.
+Supports mode=raw, mode=extract, mode=plan.
+Cleans email body length for LLM.
+backend/app/services/gmail_service.py
+Calls Gmail API to get emails.
+Extracts subject/body/sender.
+backend/app/services/llm_service.py
+Calls Ollama /api/chat
+Adds num_predict limit for speed.
+Used by task_agent.py.
+backend/app/agents/task_agent.py
+The brain:
+Calls LLM to extract tasks
+Calls LLM to plan steps
+Returns structured output
+✅ How the current flow works
+Client hits:
+Code
+/api/gmail/recent-plans?mode=plan
+Gmail API fetches latest messages
+Email text trimmed (clean body)
+LLM called for extraction
+If mode=plan, LLM called again for reasoning
+Result returned as JSON
+✅ Why “plan mode” is slow
+It runs 2 LLM calls per email
+Local CPU inference takes time
+✅ Repo Status
+All code changes were pushed to:
+
+Code
+https://github.com/prakharshrestha/Auto-Task-Generator.git
+Latest commit:
+
+Code
+a110bd7
+✅ How to extend
+If you add:
+
+Task DB → add models + routes
+Frontend → separate frontend/ or web/
+Filters → implement in gmail.py before calling LLM
+✅ Future safe places to edit
+Goal	File
+Skip newsletters	routes/gmail.py
+Change LLM output size	services/llm_service.py
+Store tasks	new models/ + routes/tasks.py
+Frontend	new /frontend directory
+
+
+
+
+
+Extra important notes to include
+OAuth tokens storage
+Check where refresh/access tokens are saved (file/db).
+If tokens are stored locally, they won’t exist on her machine until she completes OAuth once.
+Google OAuth testing mode
+If OAuth app is in Testing, she must be added as Test User or login will fail.
+Ollama model must be pulled
+ollama pull mistral (or llama2)
+If the model isn’t pulled, LLM calls will fail.
+Ollama must be running
+ollama serve
+Runs on port 11434
+Timeouts
+LLM call timeout is 30s; large emails may hit it.
+Gmail API quota
+If Gmail calls start failing, check Google Cloud quota.
+Windows firewall
+If browser can’t hit localhost:8000, allow Python/Uvicorn in firewall.
+Requirements install
+Must run pip install -r requirements.txt after venv.

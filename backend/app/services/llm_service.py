@@ -2,6 +2,7 @@
 LLM Service for AI interactions using Ollama (local).
 """
 import json
+import re
 import logging
 from typing import Optional, Dict, Any
 import requests
@@ -30,16 +31,30 @@ class LLMService:
                 {"role": "user", "content": user_prompt}
             ],
             "stream": False,
+            "format": "json",
             "options": {
                 "temperature": self.temperature,
-                "num_predict": 200
+                "num_predict": 800
             }
         }
 
-        response = requests.post(f"{self.base_url}/api/chat", json=payload, timeout=30)
+        response = requests.post(f"{self.base_url}/api/chat", json=payload, timeout=300)
         response.raise_for_status()
         data = response.json()
         return data["message"]["content"]
+
+    def _extract_json(self, text: str) -> str:
+        """Extract JSON from markdown code blocks or clean up the string."""
+        json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+        if json_match:
+            return json_match.group(1)
+        
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            return text[start_idx:end_idx+1]
+        
+        return text
 
     def extract_tasks(
         self,
@@ -83,11 +98,12 @@ Return ONLY valid JSON with this structure:
             """
 
             response_text = self._chat(
-                system_prompt="You are a helpful task extraction assistant.",
+                system_prompt="You are a helpful task extraction assistant. Return ONLY valid JSON, without any markdown formatting or explanations.",
                 user_prompt=prompt
             )
 
-            extracted_data = json.loads(response_text)
+            clean_json = self._extract_json(response_text)
+            extracted_data = json.loads(clean_json)
             logger.info(f"Successfully extracted {len(extracted_data.get('tasks', []))} tasks")
             return extracted_data
 
@@ -140,11 +156,12 @@ Return ONLY valid JSON:
             """
 
             response_text = self._chat(
-                system_prompt="You are a helpful task planning assistant.",
+                system_prompt="You are a helpful task planning assistant. Return ONLY valid JSON, without any markdown formatting or explanations.",
                 user_prompt=prompt
             )
 
-            reasoning_data = json.loads(response_text)
+            clean_json = self._extract_json(response_text)
+            reasoning_data = json.loads(clean_json)
             logger.info(f"Reasoning completed for task: {task_title}")
             return reasoning_data
 
@@ -185,11 +202,12 @@ Return ONLY valid JSON:
             """
 
             response_text = self._chat(
-                system_prompt="You are a helpful summary assistant.",
+                system_prompt="You are a helpful summary assistant. Return ONLY valid JSON, without any markdown formatting or explanations.",
                 user_prompt=prompt
             )
 
-            summary_data = json.loads(response_text)
+            clean_json = self._extract_json(response_text)
+            summary_data = json.loads(clean_json)
             logger.info(f"Summary generated for task: {task_title}")
             return summary_data
 
@@ -227,11 +245,12 @@ Return ONLY valid JSON:
             """
 
             response_text = self._chat(
-                system_prompt="You are a helpful memory retrieval assistant.",
+                system_prompt="You are a helpful memory retrieval assistant. Return ONLY valid JSON, without any markdown formatting or explanations.",
                 user_prompt=prompt
             )
 
-            memory_data = json.loads(response_text)
+            clean_json = self._extract_json(response_text)
+            memory_data = json.loads(clean_json)
             logger.info(f"Memory context retrieved for query: {query}")
             return memory_data
 

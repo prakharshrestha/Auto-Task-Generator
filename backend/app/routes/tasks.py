@@ -101,6 +101,19 @@ async def execute_task(task_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/", response_model=Task)
+async def create_manual_task(task_data: TaskCreate):
+    """
+    Manually create a new task.
+    """
+    try:
+        new_task = agent.create_task(task_data.dict(exclude_unset=True))
+        return new_task
+    except Exception as e:
+        logger.error(f"Error creating manual task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/", response_model=TaskListResponse)
 async def list_tasks(
     skip: int = 0,
@@ -177,21 +190,13 @@ async def update_task(task_id: str, update_data: TaskUpdate):
         Updated task
     """
     try:
-        task = agent.tasks_store.get(task_id)
+        update_dict = update_data.dict(exclude_unset=True)
+        updated_task = agent.update_task(task_id, update_dict)
         
-        if not task:
+        if not updated_task:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        # Update task fields
-        update_dict = update_data.dict(exclude_unset=True)
-        for field, value in update_dict.items():
-            if value is not None:
-                setattr(task, field, value)
-        
-        from datetime import datetime
-        task.updated_at = datetime.utcnow()
-        
-        return task.dict()
+        return updated_task
         
     except HTTPException:
         raise
@@ -212,10 +217,9 @@ async def delete_task(task_id: str):
         Success message
     """
     try:
-        if task_id not in agent.tasks_store:
+        success = agent.delete_task(task_id)
+        if not success:
             raise HTTPException(status_code=404, detail="Task not found")
-        
-        del agent.tasks_store[task_id]
         
         return {"message": f"Task {task_id} deleted successfully"}
         
