@@ -13,10 +13,11 @@ class GmailService:
             creds.refresh(Request())
         self.service = build("gmail", "v1", credentials=creds)
 
-    def list_latest(self, max_results: int = 8) -> List[Dict[str, Any]]:
+    def list_latest(self, max_results: int = 8, q: str = "") -> List[Dict[str, Any]]:
         resp = self.service.users().messages().list(
             userId="me",
-            maxResults=max_results
+            maxResults=max_results,
+            q=q
         ).execute()
         return resp.get("messages", [])
 
@@ -34,6 +35,7 @@ class GmailService:
         subject = headers.get("subject", "")
         date = headers.get("date", "")
         body = self._extract_body(msg.get("payload", {}))
+        labels = msg.get("labelIds", [])
 
         return {
             "id": message_id,
@@ -42,7 +44,8 @@ class GmailService:
             "from_email": email,
             "subject": subject,
             "date": date,
-            "body": body
+            "body": body,
+            "labels": labels
         }
 
     def _extract_body(self, payload: Dict[str, Any]) -> str:

@@ -44,7 +44,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,6 +66,12 @@ app.include_router(gmail.router)
 @app.on_event("startup")
 async def startup_event():
     """Run on application startup."""
+    from app.database import engine, Base
+    from app.models.db_models import DBTask  # Ensure models are imported
+    
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
+    
     logger.info("=" * 50)
     logger.info(f"Starting {settings.api_title} v{settings.api_version}")
     logger.info(f"Environment: {settings.environment}")

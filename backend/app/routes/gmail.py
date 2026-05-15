@@ -18,6 +18,24 @@ def _clean_body(text: str, max_len: int = 2000) -> str:
     return text[:max_len]
 
 
+def _is_promotional_or_newsletter(msg: dict) -> bool:
+    labels = msg.get("labels", [])
+    if "CATEGORY_PROMOTIONS" in labels or "CATEGORY_SOCIAL" in labels:
+        return True
+
+    sender_email = (msg.get("from_email") or "").lower()
+    promotional_prefixes = ("noreply", "no-reply", "marketing", "news", "newsletter", "updates", "info", "hello")
+    if sender_email.split("@")[0] in promotional_prefixes or "newsletter" in sender_email:
+        return True
+
+    body = msg.get("body", "").lower()
+    # Simple heuristic: presence of unsubscribe link usually implies newsletter/marketing
+    if "unsubscribe" in body and len(body) > 100:
+        return True
+
+    return False
+
+
 @router.get("/recent")
 def recent_emails(limit: int = 8):
     limit = min(max(limit, 1), 8)
@@ -60,6 +78,9 @@ def recent_email_plans(limit: int = 8, mode: str = "plan"):
     grouped = {}
 
     for msg in items:
+        if _is_promotional_or_newsletter(msg):
+            continue
+
         sender_key = msg.get("from_email") or msg.get("from") or "unknown"
 
         if sender_key not in grouped:

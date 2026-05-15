@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Ollama Configuration (Local)
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "mistral"
+    ollama_model: str = "llama3.2:1b"
 
     # Common LLM Settings
     temperature: float = 0.7
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
         return self.ollama_model
 
     class Config:
-        env_file = "backend/.env"
+        env_file = ".env"
         case_sensitive = False
         protected_namespaces = ('settings_',)
 
