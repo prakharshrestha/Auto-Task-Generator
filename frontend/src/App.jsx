@@ -185,7 +185,7 @@ function App() {
             <input 
               type="text" 
               className="search-bar" 
-              placeholder="Search mail (press Enter)..." 
+              placeholder="Search mail..." 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => {
@@ -198,9 +198,48 @@ function App() {
         </div>
 
         {error && (
-          <div style={{ padding: '16px', background: 'var(--danger-light)', color: 'var(--danger)', borderRadius: '12px' }}>
-            Error: {error}
-          </div>
+          error === "Gmail authentication required" ? (
+            <div className="bento-card" style={{ 
+              background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', 
+              borderColor: '#bfdbfe',
+              padding: '32px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              textAlign: 'center',
+              gap: '16px',
+              maxWidth: '600px',
+              margin: '20px auto'
+            }}>
+              <div style={{ fontSize: '3rem' }}>🔑</div>
+              <h3 style={{ color: '#1e3a8a', fontSize: '1.25rem', fontWeight: 600 }}>Google Account Connection Required</h3>
+              <p style={{ color: '#1e40af', fontSize: '0.95rem', maxWidth: '400px' }}>
+                AutoTask AI needs permission to read your Gmail inbox in order to automatically extract tasks and build workflow plans.
+              </p>
+              <a 
+                href="http://localhost:8000/auth/google/login" 
+                className="btn btn-primary"
+                style={{ 
+                  background: '#2563eb', 
+                  color: 'white', 
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  borderRadius: '100px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                }}
+              >
+                <span>Connect Google Account</span>
+              </a>
+            </div>
+          ) : (
+            <div style={{ padding: '16px', background: 'var(--danger-light)', color: 'var(--danger)', borderRadius: '12px' }}>
+              Error: {error}
+            </div>
+          )
         )}
 
         {/* Dashboard View */}
