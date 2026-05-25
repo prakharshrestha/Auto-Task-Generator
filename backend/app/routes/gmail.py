@@ -1,5 +1,6 @@
 import re
 from fastapi import APIRouter, HTTPException
+from google.auth.exceptions import RefreshError
 
 from app.services.gmail_oauth_service import GmailOAuthService
 from app.services.gmail_service import GmailService
@@ -45,7 +46,11 @@ def recent_emails(limit: int = 8):
     if not creds:
         raise HTTPException(status_code=401, detail="No Gmail token found. Login at /auth/google/login")
 
-    gmail = GmailService(creds)
+    try:
+        gmail = GmailService(creds)
+    except RefreshError:
+        raise HTTPException(status_code=401, detail="Gmail credentials expired or invalid. Please re-authenticate.")
+
     messages = gmail.list_latest(max_results=limit)
 
     items = [gmail.get_message(m["id"]) for m in messages]
@@ -71,7 +76,11 @@ def recent_email_plans(limit: int = 8, mode: str = "plan"):
     if not creds:
         raise HTTPException(status_code=401, detail="No Gmail token found. Login at /auth/google/login")
 
-    gmail = GmailService(creds)
+    try:
+        gmail = GmailService(creds)
+    except RefreshError:
+        raise HTTPException(status_code=401, detail="Gmail credentials expired or invalid. Please re-authenticate.")
+
     messages = gmail.list_latest(max_results=limit)
     items = [gmail.get_message(m["id"]) for m in messages]
 

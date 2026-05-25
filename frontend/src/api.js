@@ -54,12 +54,22 @@ export const api = {
   // Email Extraction
   extractFromRecentEmails: async (limit = 10) => {
     const res = await fetch(`${API_BASE}/gmail/recent-plans?limit=${limit}&mode=extract`);
-    if (!res.ok) throw new Error("Failed to extract emails");
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error("Gmail authentication required");
+      }
+      throw new Error("Failed to extract emails");
+    }
     return res.json();
   },
   getRawRecentEmails: async (limit = 10) => {
     const res = await fetch(`${API_BASE}/gmail/recent-plans?limit=${limit}&mode=raw`);
-    if (!res.ok) throw new Error("Failed to fetch emails");
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error("Gmail authentication required");
+      }
+      throw new Error("Failed to fetch emails");
+    }
     return res.json();
   },
   extractTasksForEmail: async (subject, body, sender) => {

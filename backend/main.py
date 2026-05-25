@@ -9,6 +9,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -92,10 +93,21 @@ async def shutdown_event():
 async def global_exception_handler(request, exc):
     """Handle uncaught exceptions."""
     logger.error(f"Unhandled exception: {exc}")
-    return {
-        "error": "Internal server error",
-        "detail": str(exc) if settings.environment == "development" else "An error occurred"
-    }
+    
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    if isinstance(exc, StarletteHTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
+        
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "detail": str(exc) if settings.environment == "development" else "An error occurred"
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn

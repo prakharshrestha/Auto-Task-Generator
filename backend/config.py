@@ -63,7 +63,7 @@ class Settings(BaseSettings):
         return self.ollama_model
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", "../.env")
         case_sensitive = False
         protected_namespaces = ('settings_',)
 
