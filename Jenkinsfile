@@ -27,16 +27,17 @@ pipeline {
     }
 
     stage('Install Dependencies (in /opt venv)') {
-      steps {
-        sh '''
-          set -euxo pipefail
-          cd "${DEPLOY_DIR}"
-          /usr/bin/python3 -m venv venv || true
-          ./venv/bin/pip install --upgrade pip
-          ./venv/bin/pip install -r requirements.txt
-        '''
-      }
+    options { timeout(time: 20, unit: 'MINUTES') }
+    steps {
+      sh '''
+        set -euxo pipefail
+        cd "${DEPLOY_DIR}"
+        test -x venv/bin/python || /usr/bin/python3 -m venv venv
+        ./venv/bin/pip install --upgrade pip
+        ./venv/bin/pip install -r requirements.txt
+      '''
     }
+  }
 
     stage('Restart Application') {
       steps {
