@@ -130,7 +130,7 @@ function App() {
       <div className="sidebar">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">A</div>
-          AutoTask AI
+          AutoTaskk AI
         </div>
         
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
