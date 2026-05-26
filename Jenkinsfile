@@ -3,11 +3,11 @@ pipeline {
 
   options {
     skipDefaultCheckout(true)
+    timestamps()
   }
 
   environment {
-    DEPLOY_DIR = "/opt/Auto-Task-Generator"
-    VENV_DIR   = "/opt/Auto-Task-Generator/venv"
+    COMPOSE_FILE = "docker-compose.yml"
   }
 
   stages {
@@ -17,37 +17,22 @@ pipeline {
       }
     }
 
-    stage('Deploy code to /opt') {
+    stage('Build') {
       steps {
         sh '''
           set -euxo pipefail
-          rsync -a --delete \
-            --exclude ".git" \
-            --exclude "venv" \
-            --exclude "__pycache__" \
-            ./ "${DEPLOY_DIR}/"
+          docker compose -f "${COMPOSE_FILE}" build --no-cache
         '''
       }
     }
 
-    stage('Install Dependencies (in /opt venv)') {
-      options {
-        timeout(time: 20, unit: 'MINUTES')
-      }
+    stage('Deploy') {
       steps {
         sh '''
           set -euxo pipefail
-          cd "${DEPLOY_DIR}"
-          test -x venv/bin/python || /usr/bin/python3 -m venv venv
-          ./venv/bin/pip install --upgrade pip
-          ./venv/bin/pip install -r requirements.txt
+          docker compose -f "${COMPOSE_FILE}" up -d
+          docker image prune -f || true
         '''
-      }
-    }
-
-    stage('Restart Application') {
-      steps {
-        sh 'sudo /usr/bin/systemctl restart autotask'
       }
     }
 
@@ -55,21 +40,20 @@ pipeline {
       steps {
         sh '''
           set -euxo pipefail
-          sudo /usr/bin/systemctl is-active autotask
 
-          # Wait up to 60 seconds for the HTTP endpoint to respond
+          # Wait for backend docs
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/docs >/dev/null; then
-              echo "App is responding"
+              echo "Backend is responding"
               exit 0
             fi
-            echo "Waiting for app to be ready... ($i/30)"
+            echo "Waiting for backend... ($i/30)"
             sleep 2
           done
 
-          echo "App did not become ready in time"
-          sudo /usr/bin/systemctl status autotask --no-pager || true
-          sudo journalctl -u autotask -n 80 --no-pager || true
+          echo "Backend did not become ready"
+          docker ps
+          docker logs auto-task-backend --tail 200 || true
           exit 1
         '''
       }
