@@ -21,7 +21,17 @@ pipeline {
         '''
       }
     }
-
+    stage('Create .env') {
+      steps {
+        withCredentials([file(credentialsId: 'auto-task-env', variable: 'ENVFILE')]) {
+          sh '''
+            set -euxo pipefail
+            cp "$ENVFILE" .env
+            chmod 600 .env
+          '''
+        }
+      }
+    }
     stage('Deploy') {
       steps {
         sh '''
