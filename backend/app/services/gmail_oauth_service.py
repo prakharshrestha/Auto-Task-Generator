@@ -158,3 +158,9 @@ class GmailOAuthService:
                 pass
 
         return email, creds
+
+    def clear_credentials(self) -> bool:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM gmail_tokens")
+            conn.commit()
+        return True

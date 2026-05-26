@@ -52,7 +52,7 @@ export const api = {
   },
 
   // Email Extraction
-  extractFromRecentEmails: async (limit = 10) => {
+  extractFromRecentEmails: async (limit = 15) => {
     const res = await fetch(`${API_BASE}/gmail/recent-plans?limit=${limit}&mode=extract`);
     if (!res.ok) {
       if (res.status === 401) {
@@ -62,13 +62,23 @@ export const api = {
     }
     return res.json();
   },
-  getRawRecentEmails: async (limit = 10) => {
+  getRawRecentEmails: async (limit = 15) => {
     const res = await fetch(`${API_BASE}/gmail/recent-plans?limit=${limit}&mode=raw`);
     if (!res.ok) {
       if (res.status === 401) {
         throw new Error("Gmail authentication required");
       }
       throw new Error("Failed to fetch emails");
+    }
+    return res.json();
+  },
+  getUnreadCount: async () => {
+    const res = await fetch(`${API_BASE}/gmail/unread-count`);
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error("Gmail authentication required");
+      }
+      throw new Error("Failed to fetch unread count");
     }
     return res.json();
   },
@@ -79,6 +89,20 @@ export const api = {
       body: JSON.stringify({ email_subject: subject, email_body: body, sender: sender })
     });
     if (!res.ok) throw new Error("Failed to extract tasks");
+    return res.json();
+  },
+  
+  getLoginStatus: async () => {
+    const res = await fetch("http://localhost:8000/auth/google/status");
+    if (!res.ok) throw new Error("Failed to get connection status");
+    return res.json();
+  },
+  
+  logout: async () => {
+    const res = await fetch("http://localhost:8000/auth/google/logout", {
+      method: "POST"
+    });
+    if (!res.ok) throw new Error("Failed to disconnect Google account");
     return res.json();
   }
 };

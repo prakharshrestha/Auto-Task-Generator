@@ -27,7 +27,7 @@ async def google_callback(request: Request):
     try:
         code = request.query_params.get("code")
         if not code:
-            raise HTTPException(status_code=400, detail="Missing code")
+            return RedirectResponse("http://localhost:5173/?login=error&error=Missing+code")
 
         oauth = GmailOAuthService()
         creds = oauth.exchange_code(code)
@@ -35,16 +35,49 @@ async def google_callback(request: Request):
         email = userinfo.get("email")
 
         if not email:
-            raise HTTPException(status_code=400, detail="Could not get user email")
+            return RedirectResponse("http://localhost:5173/?login=error&error=Could+not+retrieve+email")
 
         oauth.store_credentials(email, creds)
 
-        return JSONResponse({
-            "success": True,
-            "email": email,
-            "message": "OAuth login successful. Token stored."
-        })
+        return RedirectResponse(f"http://localhost:5173/?login=success&email={email}")
 
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
+        import urllib.parse
+        error_msg = urllib.parse.quote_plus(str(e))
+        return RedirectResponse(f"http://localhost:5173/?login=error&error={error_msg}")
+
+
+@router.get("/status")
+async def google_status():
+    try:
+        oauth = GmailOAuthService()
+        email, creds = oauth.load_latest_credentials()
+        if creds:
+            return JSONResponse({
+                "connected": True,
+                "email": email
+            })
+        return JSONResponse({
+            "connected": False
+        })
+    except Exception as e:
+        logger.error(f"Status check error: {e}")
+        return JSONResponse({
+            "connected": False,
+            "error": str(e)
+        })
+
+
+@router.post("/logout")
+async def google_logout():
+    try:
+        oauth = GmailOAuthService()
+        oauth.clear_credentials()
+        return JSONResponse({
+            "success": True,
+            "message": "Logged out successfully"
+        })
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
