@@ -130,7 +130,7 @@ function App() {
       <div className="sidebar">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">A</div>
-          AAutoTaskk AAII
+          AutoTaskk AAII
         </div>
         
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
