@@ -1,9 +1,9 @@
 pipeline {
   agent any
 
-  environment {
-    DEPLOY_DIR = "/opt/Auto-Task-Generator"
-    VENV_DIR   = "/opt/Auto-Task-Generator/venv"
+  options {
+    skipDefaultCheckout(true)
+    timestamps()
   }
 
   stages {
@@ -13,34 +13,33 @@ pipeline {
       }
     }
 
-    stage('Deploy code to /opt') {
+    stage('Build images') {
       steps {
         sh '''
           set -euxo pipefail
-          rsync -a --delete \
-            --exclude ".git" \
-            --exclude "venv" \
-            --exclude "__pycache__" \
-            ./ "${DEPLOY_DIR}/"
+          docker compose build
         '''
       }
     }
 
-    stage('Install Dependencies (in /opt venv)') {
+    stage('Create .env') {
       steps {
-        sh '''
-          set -euxo pipefail
-          cd "${DEPLOY_DIR}"
-          /usr/bin/python3 -m venv venv || true
-          ./venv/bin/pip install --upgrade pip
-          ./venv/bin/pip install -r requirements.txt
-        '''
+        withCredentials([file(credentialsId: 'auto-task-env', variable: 'ENVFILE')]) {
+          sh '''
+            set -euxo pipefail
+            cp "$ENVFILE" "$WORKSPACE/.env"
+            chmod 600 "$WORKSPACE/.env"
+          '''
+        }
       }
     }
 
-    stage('Restart Application') {
+    stage('Deploy') {
       steps {
-        sh 'sudo /usr/bin/systemctl restart autotask'
+        sh '''
+          set -euxo pipefail
+          docker compose up -d --build
+        '''
       }
     }
 
@@ -48,10 +47,30 @@ pipeline {
       steps {
         sh '''
           set -euxo pipefail
-          sudo /usr/bin/systemctl is-active autotask
-          curl -fsS http://127.0.0.1:8000/docs >/dev/null
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/docs >/dev/null; then
+              echo "Backend is responding"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 2
+          done
+
+          echo "Backend did not become ready"
+          docker ps
+          docker logs auto-task-backend --tail 200 || true
+          exit 1
         '''
       }
+    }
+  }
+
+  post {
+    always {
+      sh '''
+        docker compose ps || true
+        rm -f "$WORKSPACE/.env" || true
+      '''
     }
   }
 }

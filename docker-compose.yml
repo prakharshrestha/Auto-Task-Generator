@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: auto-task-backend
+    env_file:
+      - .env
+    # recommended: don't expose to internet
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: auto-task-frontend
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
