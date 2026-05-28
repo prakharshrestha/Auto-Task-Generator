@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     api_title: str = "Autonomous AI Agent API"
     api_version: str = "1.0.0"
 
+    # Frontend Configuration
+    frontend_url: str = "https://auto-task-app.duckdns.org"
+
     # LLM Provider Configuration
     llm_provider: str = "ollama"
 
@@ -56,7 +59,7 @@ class Settings(BaseSettings):
     log_file: str = "./logs/app.log"
 
     # CORS Configuration
-    allowed_origins: str = "http://localhost:3000,http://localhost:8000"
+    allowed_origins: str = "http://localhost:3000,http://localhost:8000,http://localhost:5173,https://auto-task-app.duckdns.org"
 
     @property
     def model_name(self) -> str:

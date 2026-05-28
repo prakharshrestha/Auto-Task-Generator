@@ -7,6 +7,8 @@ from fastapi.responses import RedirectResponse, JSONResponse
 
 from app.services.gmail_oauth_service import GmailOAuthService
 
+from config import settings
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth/google", tags=["auth"])
 
@@ -27,7 +29,7 @@ async def google_callback(request: Request):
     try:
         code = request.query_params.get("code")
         if not code:
-            return RedirectResponse("http://localhost:5173/?login=error&error=Missing+code")
+            return RedirectResponse(f"{settings.frontend_url}/?login=error&error=Missing+code")
 
         oauth = GmailOAuthService()
         creds = oauth.exchange_code(code)
@@ -35,17 +37,17 @@ async def google_callback(request: Request):
         email = userinfo.get("email")
 
         if not email:
-            return RedirectResponse("http://localhost:5173/?login=error&error=Could+not+retrieve+email")
+            return RedirectResponse(f"{settings.frontend_url}/?login=error&error=Could+not+retrieve+email")
 
         oauth.store_credentials(email, creds)
 
-        return RedirectResponse(f"http://localhost:5173/?login=success&email={email}")
+        return RedirectResponse(f"{settings.frontend_url}/?login=success&email={email}")
 
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
         import urllib.parse
         error_msg = urllib.parse.quote_plus(str(e))
-        return RedirectResponse(f"http://localhost:5173/?login=error&error={error_msg}")
+        return RedirectResponse(f"{settings.frontend_url}/?login=error&error={error_msg}")
 
 
 @router.get("/status")
