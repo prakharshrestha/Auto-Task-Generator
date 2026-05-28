@@ -93,13 +93,13 @@ export const api = {
   },
   
   getLoginStatus: async () => {
-    const res = await fetch("http://localhost:8000/auth/google/status");
+    const res = await fetch(`${API_BASE}/auth/google/status`);
     if (!res.ok) throw new Error("Failed to get connection status");
     return res.json();
   },
   
   logout: async () => {
-    const res = await fetch("http://localhost:8000/auth/google/logout", {
+    const res = await fetch(`${API_BASE}/auth/google/logout`, {
       method: "POST"
     });
     if (!res.ok) throw new Error("Failed to disconnect Google account");
