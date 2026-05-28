@@ -307,7 +307,7 @@ function App() {
               )}
 
               <a 
-                href="http://localhost:8000/auth/google/login"
+                href="/api/auth/google/login"
                 className="google-btn"
               >
                 <svg className="google-icon" viewBox="0 0 24 24">
@@ -443,7 +443,7 @@ function App() {
                 AutoTask AI needs permission to read your Gmail inbox in order to automatically extract tasks and build workflow plans.
               </p>
               <a 
-                href="http://localhost:8000/auth/google/login" 
+                href="/api/auth/google/login" 
                 className="btn btn-primary"
                 style={{ 
                   background: '#2563eb', 
