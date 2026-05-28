@@ -45,7 +45,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=settings.allowed_origins_list + ["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,7 +56,8 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0", "13.61.146.129",
         "13.61.146.129:8000","ec2-13-61-146-129.eu-north-1.compute.amazonaws.com",
-                  "ec2-13-61-146-129.eu-north-1.compute.amazonaws.com:8000"]
+                  "ec2-13-61-146-129.eu-north-1.compute.amazonaws.com:8000",
+                  "auto-task-app.duckdns.org", "*.duckdns.org"]
 )
 
 # Include routers
