@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Task-Generator Documentation</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljs-theme">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    
+    <!-- Mermaid.js for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    
+    <style>
+        /* Design System & Themes */
+        :root[data-theme="dark"] {
+            --bg-main: #0b0f19;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-sidebar: rgba(15, 23, 42, 0.9);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --code-bg: #1e293b;
+            --table-header-bg: #1e293b;
+            --table-row-even: #111827;
+            --toc-hover-bg: rgba(255, 255, 255, 0.04);
+            --toc-active-bg: rgba(99, 102, 241, 0.1);
+        }
+        
+        :root[data-theme="light"] {
+            --bg-main: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --bg-sidebar: rgba(241, 245, 249, 0.95);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-primary: #4f46e5;
+            --accent-secondary: #7c3aed;
+            --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --accent-glow: rgba(79, 70, 229, 0.15);
+            --code-bg: #f1f5f9;
+            --table-header-bg: #e2e8f0;
+            --table-row-even: #f8fafc;
+            --toc-hover-bg: rgba(0, 0, 0, 0.04);
+            --toc-active-bg: rgba(79, 70, 229, 0.08);
+        }
+        
+        /* Global Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            line-height: 1.625;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* Layout Structure */
+        .sidebar {
+            width: 320px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem 1.5rem 1.5rem;
+            z-index: 10;
+            backdrop-filter: blur(16px);
+        }
+        
+        .main-content {
+            margin-left: 320px;
+            flex: 1;
+            padding: 4rem 5rem;
+            max-width: 1100px;
+            margin-right: auto;
+        }
+        
+        /* Brand Logo */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: var(--accent-gradient);
+            border-radius: 0.625rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            box-shadow: 0 4px 14px var(--accent-glow);
+            font-size: 1.15rem;
+        }
+        
+        .logo-title {
+            font-weight: 800;
+            font-size: 1.35rem;
+            letter-spacing: -0.03em;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Sidebar Navigation List */
+        .toc-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            padding-left: 0.5rem;
+        }
+        
+        .toc-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding-right: 0.25rem;
+        }
+        
+        .toc-container ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .toc-container li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .toc-container a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .toc-container a:hover {
+            color: var(--text-primary);
+            background-color: var(--toc-hover-bg);
+            padding-left: 1rem;
+        }
+        
+        .toc-container .toc-active {
+            color: var(--accent-primary);
+            background-color: var(--toc-active-bg);
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 var(--accent-primary);
+            padding-left: 1rem;
+        }
+        
+        .toc-container ul ul {
+            padding-left: 1rem;
+            margin-top: 0.25rem;
+            border-left: 1px solid var(--border-color);
+            margin-left: 0.5rem;
+        }
+        
+        .toc-container ul ul a {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
+        }
+        
+        /* Sidebar Action Bar */
+        .sidebar-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .theme-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.6rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .theme-toggle-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+            background-color: var(--toc-hover-bg);
+            transform: scale(1.05);
+        }
+        
+        /* Markdown / Typography Styles */
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 2.75rem;
+            margin-bottom: 1.25rem;
+            letter-spacing: -0.025em;
+        }
+        
+        h1 {
+            font-size: 2.65rem;
+            font-weight: 800;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.25rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2.25rem;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.6rem;
+            margin-top: 3.5rem;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+            margin-top: 2.25rem;
+        }
+        
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            word-wrap: break-word;
+        }
+        
+        /* Lists formatting */
+        ul, ol {
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+            font-size: 1.05rem;
+        }
+        
+        /* Code & Preformatted Blocks */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1.75rem;
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.925rem;
+        }
+        
+        p code, li code {
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.45rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.85em;
+            color: var(--accent-secondary);
+            word-wrap: break-word;
+        }
+        
+        /* Copy to Clipboard Button */
+        .copy-btn {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.6rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            color: #d1d5db;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s, color 0.2s;
+            backdrop-filter: blur(4px);
+        }
+        
+        pre:hover .copy-btn {
+            opacity: 1;
+        }
+        
+        .copy-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: transparent;
+        }
+        
+        /* Interactive Mermaid Diagrams */
+        .mermaid {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem 1.5rem;
+            margin: 2rem 0;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        
+        /* Elegant Table Designs */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-size: 0.95rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        th, td {
+            padding: 0.9rem 1.2rem;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--text-primary);
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+            letter-spacing: 0.02em;
+        }
+        
+        td {
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        
+        tr:nth-child(even) {
+            background-color: var(--table-row-even);
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Miscellaneous styles */
+        hr {
+            border: 0;
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 3.5rem 0;
+        }
+        
+        /* Scrollbar customizing */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        /* Responsive Mobile/Tablet Layouts */
+        @media (max-width: 1024px) {
+            .main-content {
+                padding: 3rem 2.5rem;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+                padding: 1.5rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 2.5rem 1.5rem;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo-container">
+            <div class="logo-icon">⚙️</div>
+            <div class="logo-title">Auto-Task</div>
+        </div>
+        <div class="toc-title">Documentation</div>
+        <nav class="toc-container" id="toc">
+            <!-- Table of contents will be generated here -->
+        </nav>
+        <div class="sidebar-footer">
+            <button class="theme-toggle-btn" id="theme-toggle" title="Toggle theme">
+                <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Auto-Task v1.0.0</span>
+        </div>
+    </aside>
+    
+    <main class="main-content">
+        <article class="markdown-body">
+<h1>Auto‑Task‑Generator: Project Documentation</h1>
+<p>This documentation describes the architecture, tech stack, LLM services, and website flow of the <strong>Auto-Task-Generator</strong> project. The project is an autonomous AI agent system designed to fetch emails from Gmail, parse them to extract actionable tasks, reason about those tasks to construct multi-step workflow plans, and execute them.</p>
+<hr />
+<h2>🏗️ System Architecture</h2>
+<p>The following Mermaid diagram shows the high-level architecture and how the components interact:</p>
+<pre><code class="language-mermaid">graph TD
+    %% Frontend Group
+    subgraph Frontend [React + Vite App]
+        UI[App.jsx Dashboard]
+        API_Client[api.js Client]
+    end
+
+    %% Backend Group
+    subgraph Backend [FastAPI Server]
+        Router[API Routers: auth/gmail/tasks]
+        Agent[TaskAgent: Brain]
+
+        subgraph Services
+            Gmail_Svc[GmailService]
+            OAuth_Svc[GmailOAuthService]
+            LLM_Svc[LLMService]
+            Workflow_Svc[WorkflowService]
+        end
+    end
+
+    %% Database Group
+    subgraph Storage [Local Database]
+        DB[(SQLite: app.db)]
+    end
+
+    %% External Systems Group
+    subgraph External [External Services]
+        Google_API[Google Gmail API]
+        Ollama[Ollama Local Server]
+    end
+
+    %% Relationships
+    UI --&gt;|User Interactions| API_Client
+    API_Client --&gt;|REST APIs| Router
+    Router --&gt;|Orchestrates| Agent
+    Agent --&gt;|Calls| Gmail_Svc
+    Agent --&gt;|Calls| LLM_Svc
+    Agent --&gt;|Calls| Workflow_Svc
+
+    Gmail_Svc --&gt;|Pulls Inbox| Google_API
+    OAuth_Svc --&gt;|Authenticates| Google_API
+    OAuth_Svc --&gt;|Saves Tokens| DB
+
+    LLM_Svc --&gt;|Inference Queries| Ollama
+
+    Agent --&gt;|Saves Tasks &amp; States| DB
+</code></pre>
+<hr />
+<h2>🛠️ Web Stack</h2>
+<p>The application is structured as a decoupled web application with a FastAPI Python backend and a React Vite frontend:</p>
+<h3>1. Backend Stack</h3>
+<ul>
+<li><strong>Framework:</strong> <strong>FastAPI</strong> (Python 3.11/3.12)</li>
+<li>High-performance, asynchronous routing.</li>
+<li>Auto-generated Swagger documentation available at <code>/docs</code> and ReDoc at <code>/redoc</code>.</li>
+<li><strong>Server:</strong> <strong>Uvicorn</strong> (running on port <code>8000</code>)</li>
+<li><strong>ORM:</strong> <strong>SQLAlchemy</strong></li>
+<li><strong>Database:</strong> <strong>SQLite</strong> (<code>app.db</code> located in the backend root directory)</li>
+<li>Automatically creates schema tables on application startup.</li>
+<li><strong>Configuration:</strong> <strong>Pydantic Settings</strong> (<code>BaseSettings</code>)</li>
+<li>Loads settings and configurations from <code>.env</code> environment files dynamically.</li>
+</ul>
+<h3>2. Frontend Stack</h3>
+<ul>
+<li><strong>Framework:</strong> <strong>React 19</strong></li>
+<li><strong>Build Tool:</strong> <strong>Vite</strong> (running dev server on port <code>5173</code>)</li>
+<li><strong>Styling:</strong> <strong>Vanilla CSS</strong></li>
+<li>Typography: Google Fonts (Inter)</li>
+<li>Responsive Layout: CSS Flexbox and CSS Grid</li>
+<li>Design Pattern: Bento-Grid style cards, clean dark accents, smooth transitions, and distinct status color codes.</li>
+<li><strong>HTTP Client:</strong> Native browser <code>fetch</code> API wrapped in a clean, modular class (<code>api.js</code>).</li>
+</ul>
+<hr />
+<h2>🤖 Large Language Models (LLMs) &amp; Models</h2>
+<p>The project leverages local Large Language Models to run task extraction and planning fully offline, ensuring complete data privacy and no API costs.</p>
+<ul>
+<li><strong>LLM Provider:</strong> <strong>Ollama</strong> (running locally on port <code>11434</code>)</li>
+<li><strong>Default Model:</strong> <code>llama3.2:1b</code> (mistral or llama2 can also be configured)</li>
+<li><strong>Model Configuration Details:</strong></li>
+<li><strong>Temperature:</strong> <code>0.7</code> (balances creative planning steps with rule-adherence)</li>
+<li><strong>Max Output Limit:</strong> <code>num_predict=800</code> (caps responses to keep local inference speed high)</li>
+<li><strong>Format:</strong> JSON Mode (ensures Ollama replies exclusively in parseable JSON objects)</li>
+</ul>
+<h3>LLM Prompt Actions:</h3>
+<ol>
+<li><strong>Task Extraction:</strong> Evaluates email subjects and bodies to return Pydantic-compatible JSON objects detailing task titles, descriptions, priority levels, due dates, and tags.</li>
+<li><strong>Task Reasoning &amp; Planning:</strong> Takes an extracted task and generates workflow steps, listing tools, requirements, and risks.</li>
+<li><strong>Execution Summarization:</strong> Summarizes step outcomes to output task status, key points, and next steps.</li>
+</ol>
+<hr />
+<h2>💾 Database Schema</h2>
+<p>The SQLite database (<code>app.db</code>) contains two primary tables:</p>
+<h3>1. <code>tasks</code> (Task Store)</h3>
+<p>Holds manually created or AI-extracted tasks.
+* <code>id</code> (String, Primary Key): Unique identifier (e.g., <code>task_f89a8c</code>).
+* <code>title</code> (String): Task title.
+* <code>description</code> (Text): Detailed task description.
+* <code>priority</code> (String): Urgency (low, medium, high, urgent).
+* <code>status</code> (String): Execution state (pending, completed, failed).
+* <code>due_date</code> (DateTime, Nullable): Completion deadline.
+* <code>assigned_to</code> (String, Nullable): Assignee email address.
+* <code>tags_json</code> (Text): JSON string list representing categories (e.g. <code>["work", "gmail"]</code>).
+* <code>source_email</code> (String): Email subject from which the task was parsed.
+* <code>extracted_from</code> (Text): The raw email snippet parsed by the LLM.
+* <code>created_at</code> / <code>updated_at</code> / <code>completed_at</code> (DateTime).</p>
+<h3>2. <code>gmail_tokens</code> (OAuth Store)</h3>
+<p>Stores verified credentials for Google Gmail access.
+* <code>email</code> (String, Primary Key): User's Google email address.
+* <code>access_token</code> (Text)
+* <code>refresh_token</code> (Text)
+* <code>token_uri</code> (Text)
+* <code>client_id</code> / <code>client_secret</code> (Text)
+* <code>scopes</code> (Text): JSON array of scopes.
+* <code>expiry</code> (Text): Expiration timestamp.</p>
+<hr />
+<h2>🔄 Core Website &amp; Authentication Flow</h2>
+<h3>1. Initial State &amp; CORS Preflight</h3>
+<ul>
+<li>When the user opens the frontend (<code>http://localhost:5173/</code>), the dashboard requests the current tasks list (<code>GET /api/tasks/?limit=50</code>).</li>
+<li>If the user triggers an email fetch without credentials, the backend attempts to load credentials and refresh them. If they are expired or missing, it returns <code>401 Unauthorized</code>.</li>
+</ul>
+<pre><code>[Frontend Dashboard] --(GET /api/gmail/recent-plans)--&gt; [Backend API]
+                                                               |
+                                                   [Load &amp; Refresh Tokens]
+                                                               |
+                                                   (Expired/Missing Refresh Token)
+                                                               |
+[Show Connection Banner] &lt;---(HTTP 401 Unauthorized)-----------+
+</code></pre>
+<h3>2. Authentication Flow</h3>
+<ol>
+<li><strong>Initiate Login:</strong> The user clicks <strong>"Connect Google Account"</strong> which redirects their browser to <code>http://localhost:8000/auth/google/login</code>.</li>
+<li><strong>Google OAuth Authorization:</strong></li>
+<li>Backend generates a Google OAuth login URL with scopes (<code>openid</code>, <code>userinfo.email</code>, <code>gmail.readonly</code>) and redirects the user.</li>
+<li>User logs into Google, reviews permissions, and clicks <strong>Allow</strong> (bypassing the dev warning via <strong>Advanced</strong> if needed).</li>
+<li><strong>Token Exchange &amp; Storage:</strong></li>
+<li>Google redirects back to <code>http://localhost:8000/auth/google/callback?code=AUTH_CODE</code>.</li>
+<li>The backend takes the authorization code, exchanges it with Google for permanent credentials (including the <code>refresh_token</code>), requests the user's email, and saves these credentials in the SQLite database under the user's email.</li>
+<li>Returns a JSON success message.</li>
+</ol>
+<h3>3. Task Extraction Flow</h3>
+<ol>
+<li>User navigates back to the Dashboard and clicks <strong>"Extract Now"</strong>.</li>
+<li>Frontend calls <code>GET /api/gmail/recent-plans?limit=10&amp;mode=raw</code>.</li>
+<li>Backend fetches the latest 10 messages from Gmail, cleans their bodies, filters out marketing/promotional newsletters, and returns them to the frontend.</li>
+<li>For each relevant email, the frontend asynchronously triggers task extraction by calling <code>POST /api/tasks/extract</code>.</li>
+<li>Backend uses the local LLM (<code>llama3.2:1b</code>) to extract tasks, saves them to the SQLite database, and returns them.</li>
+<li>The dashboard list and charts automatically update to reflect the newly saved tasks.</li>
+</ol>
+<hr />
+<h2>🛡️ Exception &amp; Error Handling</h2>
+<ul>
+<li><strong>Token Expiry (401 Handler):</strong> If the backend encounters a <code>google.auth.exceptions.RefreshError</code> when initializing the Gmail connection, it intercepts it and returns an <code>HTTP 401</code> error. This prompts the React app to display the authorization UI instead of crashing with a generic 500 error.</li>
+<li><strong>CORS Middleware:</strong> Added to allow cross-origin requests from <code>http://localhost:5173</code> to <code>http://localhost:8000</code>.</li>
+</ul>
+        </article>
+    </main>
+    
+    <script>
+        // Init highlight.js code highlighting
+        hljs.highlightAll();
+        
+        // Transform fenced markdown mermaid code blocks to styled divs
+        document.querySelectorAll('pre code.language-mermaid').forEach(el => {
+            const pre = el.parentElement;
+            const div = document.createElement('div');
+            div.className = 'mermaid';
+            div.textContent = el.textContent;
+            
+            // Remove code copy button if present
+            const btn = pre.querySelector('.copy-btn');
+            if (btn) btn.remove();
+            
+            pre.replaceWith(div);
+        });
+        
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default',
+            securityLevel: 'loose'
+        });
+        
+        // Add Copy Buttons to non-mermaid Code Blocks
+        document.querySelectorAll('pre').forEach(pre => {
+            if (pre.querySelector('.mermaid')) return;
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.textContent = 'Copy';
+            btn.addEventListener('click', () => {
+                const code = pre.querySelector('code');
+                navigator.clipboard.writeText(code.textContent).then(() => {
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+        
+        // Theme Manager
+        const toggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            // Reinitialize mermaid with the proper theme
+            if (window.mermaid) {
+                mermaid.initialize({ 
+                    theme: theme === 'dark' ? 'dark' : 'default' 
+                });
+                // Note: to update already rendered SVG colors, a page reload is usually cleanest, 
+                // but setting theme will make new rendering correct.
+            }
+            
+            // Toggle highlight.js styles
+            const hljsTheme = document.getElementById('hljs-theme');
+            if (hljsTheme) {
+                hljsTheme.href = theme === 'dark' 
+                    ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
+                    : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+            }
+            
+            // Toggle Theme Button SVG Icon
+            if (theme === 'dark') {
+                themeIcon.innerHTML = `
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                `;
+            } else {
+                themeIcon.innerHTML = `
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                `;
+            }
+        }
+        
+        // Initial setup on theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else {
+            setTheme(prefersDark.matches ? 'dark' : 'light');
+        }
+        
+        toggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+        
+        // Generate Sidebar Table of Contents
+        const tocContainer = document.getElementById('toc');
+        const headings = document.querySelectorAll('.markdown-body h2, .markdown-body h3');
+        if (headings.length > 0) {
+            const ul = document.createElement('ul');
+            let currentH2Li = null;
+            let currentH2Ul = null;
+            
+            headings.forEach((heading) => {
+                if (!heading.id) {
+                    heading.id = heading.textContent.toLowerCase()
+                        .replace(/[^\w\s-]/g, '')
+                        .trim()
+                        .replace(/\s+/g, '-');
+                }
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + heading.id;
+                a.textContent = heading.textContent.replace(/^[^\w\s]+/, '').trim();
+                
+                if (heading.tagName === 'H2') {
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                    currentH2Li = li;
+                    currentH2Ul = null;
+                } else if (heading.tagName === 'H3' && currentH2Li) {
+                    if (!currentH2Ul) {
+                        currentH2Ul = document.createElement('ul');
+                        currentH2Li.appendChild(currentH2Ul);
+                    }
+                    li.appendChild(a);
+                    currentH2Ul.appendChild(li);
+                }
+            });
+            tocContainer.appendChild(ul);
+        }
+        
+        // Track Scroll for Table of Contents Highlights
+        const tocLinks = document.querySelectorAll('.toc-container a');
+        const sections = Array.from(headings);
+        
+        function scrollHandler() {
+            let currentSection = null;
+            const scrollPos = window.scrollY + 100;
+            
+            for (let section of sections) {
+                if (section.offsetTop <= scrollPos) {
+                    currentSection = section;
+                } else {
+                    break;
+                }
+            }
+            
+            tocLinks.forEach(link => {
+                link.classList.remove('toc-active');
+                if (currentSection && link.getAttribute('href') === '#' + currentSection.id) {
+                    link.classList.add('toc-active');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', scrollHandler);
+        scrollHandler(); // run initially
+    </script>
+</body>
+</html>

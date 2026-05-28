@@ -37,9 +37,32 @@ def _is_promotional_or_newsletter(msg: dict) -> bool:
     return False
 
 
+@router.get("/unread-count")
+def unread_count():
+    oauth = GmailOAuthService()
+    account_email, creds = oauth.load_latest_credentials()
+    if not creds:
+        raise HTTPException(status_code=401, detail="No Gmail token found. Login at /auth/google/login")
+
+    try:
+        gmail = GmailService(creds)
+        label_info = gmail.service.users().labels().get(userId="me", id="UNREAD").execute()
+        count = label_info.get("messagesUnread", 0)
+        return {"unread_count": count}
+    except RefreshError:
+        raise HTTPException(status_code=401, detail="Gmail credentials expired or invalid. Please re-authenticate.")
+    except Exception as e:
+        try:
+            resp = gmail.service.users().messages().list(userId="me", q="is:unread", maxResults=1).execute()
+            count = resp.get("resultSizeEstimate", 0)
+            return {"unread_count": count}
+        except Exception:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/recent")
-def recent_emails(limit: int = 8):
-    limit = min(max(limit, 1), 8)
+def recent_emails(limit: int = 15):
+    limit = min(max(limit, 1), 20)
 
     oauth = GmailOAuthService()
     email, creds = oauth.load_latest_credentials()
@@ -62,14 +85,14 @@ def recent_emails(limit: int = 8):
 
 
 @router.get("/recent-plans")
-def recent_email_plans(limit: int = 8, mode: str = "plan"):
+def recent_email_plans(limit: int = 15, mode: str = "plan"):
     """
     mode = raw | extract | plan
     raw: no LLM
     extract: task extraction only
     plan: extract + reasoning
     """
-    limit = min(max(limit, 1), 8)
+    limit = min(max(limit, 1), 20)
 
     oauth = GmailOAuthService()
     account_email, creds = oauth.load_latest_credentials()
@@ -87,7 +110,8 @@ def recent_email_plans(limit: int = 8, mode: str = "plan"):
     grouped = {}
 
     for msg in items:
-        if _is_promotional_or_newsletter(msg):
+        is_spam = _is_promotional_or_newsletter(msg)
+        if is_spam and mode != "raw":
             continue
 
         sender_key = msg.get("from_email") or msg.get("from") or "unknown"
@@ -108,7 +132,9 @@ def recent_email_plans(limit: int = 8, mode: str = "plan"):
             "date": msg.get("date"),
             "body": clean_body,
             "tasks": [],
-            "plans": []
+            "plans": [],
+            "is_spam": is_spam,
+            "labels": msg.get("labels", [])
         }
 
         if mode == "raw":
