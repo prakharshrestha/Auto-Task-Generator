@@ -23,7 +23,7 @@ class GmailOAuthService:
     def __init__(self):
         self.client_id = settings.google_client_id
         self.client_secret = settings.google_client_secret
-        self.redirect_uri = settings.google_redirect_uri
+        self.redirect_uri = "https://auto-task-app.duckdns.org/api/auth/google/callback"
 
         if not self.client_id or not self.client_secret or not self.redirect_uri:
             raise RuntimeError("Google OAuth env vars not set")
