@@ -10,7 +10,7 @@ from app.services.gmail_oauth_service import GmailOAuthService
 from config import settings
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/auth/google", tags=["auth"])
+router = APIRouter(prefix="/api/auth/google", tags=["auth"])
 
 
 @router.get("/login")
