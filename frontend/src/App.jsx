@@ -286,7 +286,7 @@ function App() {
               <div className="login-logo">
                 <img src={logoImg} alt="AutoTask Logo" />
               </div>
-              <h1 className="login-title">AutoTask AII</h1>
+              <h1 className="login-title">AutoTask AI</h1>
               <p className="login-subtitle">
                 Sign in with Google to automatically extract tasks and coordinate your email workflows.
               </p>
