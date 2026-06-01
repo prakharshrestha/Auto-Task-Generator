@@ -54,10 +54,7 @@ app.add_middleware(
 # Add trusted host middleware
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0", "13.61.146.129",
-        "13.61.146.129:8000","ec2-13-61-146-129.eu-north-1.compute.amazonaws.com",
-                  "ec2-13-61-146-129.eu-north-1.compute.amazonaws.com:8000",
-                  "auto-task-app.duckdns.org", "*.duckdns.org"]
+    allowed_hosts=["*"]
 )
 
 # Include routers
