@@ -135,8 +135,8 @@ Auto-Task-Generator/
 ---
 
 ## 👥 Authors & Contributors
-- **Prakhar Kle** - Primary architect, lead developer, and repository maintainer.
-
+- **Prakhar Shrestha** — Primary architect, responsible for Python scripting and repository maintenance.
+- **Harshit** Baliyan — Docker, CI/CD & AWS Deployment
 ---
 
 *For detailed explanations, architectural patterns, and API descriptions, refer to the [PROJECT_DOCUMENTATION.md](file:///e:/devops_proj/Auto-Task-Generator/PROJECT_DOCUMENTATION.md) file.*
